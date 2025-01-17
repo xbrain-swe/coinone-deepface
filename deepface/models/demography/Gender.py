@@ -1,11 +1,13 @@
 # 3rd party dependencies
 import numpy as np
+from deepface.commons import package_utils, weight_utils
+from deepface.commons.logger import Logger
+from deepface.models.Demography import Demography
 
 # project dependencies
 from deepface.models.facial_recognition import VGGFace
-from deepface.commons import package_utils, weight_utils
-from deepface.models.Demography import Demography
-from deepface.commons.logger import Logger
+from deepface.models.triton import triton_client
+from tritonclient.grpc import InferInput, InferRequestedOutput
 
 logger = Logger()
 
@@ -16,11 +18,11 @@ logger = Logger()
 
 tf_version = package_utils.get_tf_major_version()
 if tf_version == 1:
+    from keras.layers import Activation, Convolution2D, Flatten
     from keras.models import Model, Sequential
-    from keras.layers import Convolution2D, Flatten, Activation
 else:
+    from tensorflow.keras.layers import Activation, Convolution2D, Flatten
     from tensorflow.keras.models import Model, Sequential
-    from tensorflow.keras.layers import Convolution2D, Flatten, Activation
 
 WEIGHTS_URL="https://github.com/serengil/deepface_models/releases/download/v1.0/gender_model_weights.h5"
 
@@ -78,3 +80,27 @@ def load_model(
     )
 
     return gender_model
+
+
+class GenderTritonClient(Demography):
+    """
+    Gender model class
+    """
+
+    def __init__(self):
+        self.model = None
+        self.model_name = "Gender"
+
+    def predict(self, img: np.ndarray) -> np.ndarray:
+        # model.predict causes memory issue when it is called in a for loop
+        # return self.model.predict(img, verbose=0)[0, :]
+        with triton_client() as client:
+            inputs = []
+            inputs.append(InferInput("zero_padding2d_13_input", img.shape, "FP32"))
+            inputs[0].set_data_from_numpy(img)
+
+            outputs = []
+            outputs.append(InferRequestedOutput("activation_2"))
+
+            results = client.infer(model_name="gender", inputs=inputs, outputs=outputs)
+            return results.as_numpy("activation_2").copy()[0, :]

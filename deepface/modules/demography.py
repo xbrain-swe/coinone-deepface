@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Union
 
 # 3rd party dependencies
 import numpy as np
-from tqdm import tqdm
+from deepface.models.demography import Emotion, Gender, Race
 
 # project dependencies
-from deepface.modules import modeling, detection, preprocessing
-from deepface.models.demography import Gender, Race, Emotion
+from deepface.modules import detection, modeling, preprocessing
+from tqdm import tqdm
 
 
 def analyze(
@@ -19,6 +19,7 @@ def analyze(
     expand_percentage: int = 0,
     silent: bool = False,
     anti_spoofing: bool = False,
+    use_triton: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Analyze facial attributes such as age, gender, emotion, and race in the provided image.
@@ -159,7 +160,7 @@ def analyze(
 
             if action == "emotion":
                 emotion_predictions = modeling.build_model(
-                    task="facial_attribute", model_name="Emotion"
+                    task="facial_attribute", model_name="Emotion", use_triton=use_triton
                 ).predict(img_content)
                 sum_of_predictions = emotion_predictions.sum()
 
@@ -172,14 +173,14 @@ def analyze(
 
             elif action == "age":
                 apparent_age = modeling.build_model(
-                    task="facial_attribute", model_name="Age"
+                    task="facial_attribute", model_name="Age", use_triton=use_triton
                 ).predict(img_content)
                 # int cast is for exception - object of type 'float32' is not JSON serializable
                 obj["age"] = int(apparent_age)
 
             elif action == "gender":
                 gender_predictions = modeling.build_model(
-                    task="facial_attribute", model_name="Gender"
+                    task="facial_attribute", model_name="Gender", use_triton=use_triton
                 ).predict(img_content)
                 obj["gender"] = {}
                 for i, gender_label in enumerate(Gender.labels):
@@ -190,7 +191,7 @@ def analyze(
 
             elif action == "race":
                 race_predictions = modeling.build_model(
-                    task="facial_attribute", model_name="Race"
+                    task="facial_attribute", model_name="Race", use_triton=use_triton
                 ).predict(img_content)
                 sum_of_predictions = race_predictions.sum()
 

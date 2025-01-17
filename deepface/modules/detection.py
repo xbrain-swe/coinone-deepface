@@ -29,6 +29,7 @@ def extract_faces(
     normalize_face: bool = True,
     anti_spoofing: bool = False,
     max_faces: Optional[int] = None,
+    use_triton: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Extract faces from a given image
@@ -101,6 +102,7 @@ def extract_faces(
             align=align,
             expand_percentage=expand_percentage,
             max_faces=max_faces,
+            use_triton=use_triton,
         )
 
     # in case of no face found
@@ -173,7 +175,7 @@ def extract_faces(
         }
 
         if anti_spoofing is True:
-            antispoof_model = modeling.build_model(task="spoofing", model_name="Fasnet")
+            antispoof_model = modeling.build_model(task="spoofing", model_name="Fasnet", use_triton=use_triton)
             is_real, antispoof_score = antispoof_model.analyze(img=img, facial_area=(x, y, w, h))
             resp_obj["is_real"] = is_real
             resp_obj["antispoof_score"] = antispoof_score
@@ -195,6 +197,7 @@ def detect_faces(
     align: bool = True,
     expand_percentage: int = 0,
     max_faces: Optional[int] = None,
+    use_triton: bool = False,
 ) -> List[DetectedFace]:
     """
     Detect face(s) from a given image
@@ -221,7 +224,7 @@ def detect_faces(
     """
     height, width, _ = img.shape
     face_detector: Detector = modeling.build_model(
-        task="face_detector", model_name=detector_backend
+        task="face_detector", model_name=detector_backend, use_triton=use_triton
     )
 
     # validate expand percentage score

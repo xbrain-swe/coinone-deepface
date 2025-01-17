@@ -1,13 +1,13 @@
 # built-in dependencies
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Optional, Union
 
 # 3rd party dependencies
 import numpy as np
 
 # project dependencies
 from deepface.commons import image_utils
-from deepface.modules import modeling, detection, preprocessing
 from deepface.models.FacialRecognition import FacialRecognition
+from deepface.modules import detection, modeling, preprocessing
 
 
 def represent(
@@ -20,6 +20,7 @@ def represent(
     normalization: str = "base",
     anti_spoofing: bool = False,
     max_faces: Optional[int] = None,
+    use_triton: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Represent facial images as multi-dimensional vector embeddings.
@@ -67,7 +68,7 @@ def represent(
     resp_objs = []
 
     model: FacialRecognition = modeling.build_model(
-        task="facial_recognition", model_name=model_name
+        task="facial_recognition", model_name=model_name, use_triton=use_triton
     )
 
     # ---------------------------------

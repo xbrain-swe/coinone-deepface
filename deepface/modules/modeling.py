@@ -1,35 +1,36 @@
 # built-in dependencies
 from typing import Any
 
-# project dependencies
-from deepface.models.facial_recognition import (
-    VGGFace,
-    OpenFace,
-    FbDeepFace,
-    DeepID,
-    ArcFace,
-    SFace,
-    Dlib,
-    Facenet,
-    GhostFaceNet
-)
+from deepface.models.demography import Age, Emotion, Gender, Race
+from deepface.models.face_detection import CenterFace
+from deepface.models.face_detection import Dlib as DlibDetector
 from deepface.models.face_detection import (
     FastMtCnn,
     MediaPipe,
     MtCnn,
     OpenCv,
-    Dlib as DlibDetector,
     RetinaFace,
     Ssd,
-    Yolo as YoloFaceDetector,
-    YuNet,
-    CenterFace,
 )
-from deepface.models.demography import Age, Gender, Race, Emotion
+from deepface.models.face_detection import Yolo as YoloFaceDetector
+from deepface.models.face_detection import YuNet
+
+# project dependencies
+from deepface.models.facial_recognition import (
+    ArcFace,
+    DeepID,
+    Dlib,
+    Facenet,
+    FbDeepFace,
+    GhostFaceNet,
+    OpenFace,
+    SFace,
+    VGGFace,
+)
 from deepface.models.spoofing import FasNet
 
 
-def build_model(task: str, model_name: str) -> Any:
+def build_model(task: str, model_name: str, use_triton: bool = False) -> Any:
     """
     This function loads a pre-trained models as singletonish way
     Parameters:
@@ -48,7 +49,7 @@ def build_model(task: str, model_name: str) -> Any:
     # singleton design pattern
     global cached_models
 
-    models = {
+    local_models = {
         "facial_recognition": {
             "VGG-Face": VGGFace.VggFaceClient,
             "OpenFace": OpenFace.OpenFaceClient,
@@ -87,17 +88,44 @@ def build_model(task: str, model_name: str) -> Any:
         },
     }
 
+    triton_models = {
+        "facial_recognition": {
+            "VGG-Face": VGGFace.VggFaceTritonClient,
+        },
+        "facial_attribute": {
+            "Gender": Gender.GenderTritonClient,
+        },
+        "face_detector": {
+            "opencv": OpenCv.OpenCvClient,
+        }
+        }
+
+    if use_triton:
+        models = triton_models
+    else:
+        models = local_models
+
     if models.get(task) is None:
         raise ValueError(f"unimplemented task - {task}")
 
-    if not "cached_models" in globals():
-        cached_models = {current_task: {} for current_task in models.keys()}
+    if use_triton:
+        # triton 모델은 캐시를 하지않음.
+        ret = models[task].get(model_name)
 
-    if cached_models[task].get(model_name) is None:
-        model = models[task].get(model_name)
-        if model:
-            cached_models[task][model_name] = model()
+        if ret:
+            return ret()
         else:
             raise ValueError(f"Invalid model_name passed - {task}/{model_name}")
+    
+    else:
+        if not "cached_models" in globals():
+            cached_models = {current_task: {} for current_task in models.keys()}
+
+        if cached_models[task].get(model_name) is None:
+            model = models[task].get(model_name)
+            if model:
+                cached_models[task][model_name] = model()
+            else:
+                raise ValueError(f"Invalid model_name passed - {task}/{model_name}")
 
     return cached_models[task][model_name]

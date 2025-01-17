@@ -1,14 +1,14 @@
 # built-in dependencies
 import time
-from typing import Any, Dict, Optional, Union, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # 3rd party dependencies
 import numpy as np
+from deepface.commons.logger import Logger
+from deepface.models.FacialRecognition import FacialRecognition
 
 # project dependencies
-from deepface.modules import representation, detection, modeling
-from deepface.models.FacialRecognition import FacialRecognition
-from deepface.commons.logger import Logger
+from deepface.modules import detection, modeling, representation
 
 logger = Logger()
 
@@ -26,6 +26,7 @@ def verify(
     silent: bool = False,
     threshold: Optional[float] = None,
     anti_spoofing: bool = False,
+    use_triton: bool = False,
 ) -> Dict[str, Any]:
     """
     Verify if an image pair represents the same person or different persons.
@@ -101,7 +102,7 @@ def verify(
     tic = time.time()
 
     model: FacialRecognition = modeling.build_model(
-        task="facial_recognition", model_name=model_name
+        task="facial_recognition", model_name=model_name, use_triton=use_triton
     )
     dims = model.output_shape
 
@@ -173,6 +174,7 @@ def verify(
                     expand_percentage=expand_percentage,
                     normalization=normalization,
                     anti_spoofing=anti_spoofing,
+                    use_triton=use_triton,
                 )
             except ValueError as err:
                 raise ValueError(f"Exception while processing img{index}_path") from err
@@ -221,6 +223,7 @@ def __extract_faces_and_embeddings(
     expand_percentage: int = 0,
     normalization: str = "base",
     anti_spoofing: bool = False,
+    use_triton: bool = False,
 ) -> Tuple[List[List[float]], List[dict]]:
     """
     Extract facial areas and find corresponding embeddings for given image
@@ -239,6 +242,7 @@ def __extract_faces_and_embeddings(
         align=align,
         expand_percentage=expand_percentage,
         anti_spoofing=anti_spoofing,
+        use_triton=use_triton,
     )
 
     # find embeddings for each face
@@ -252,6 +256,7 @@ def __extract_faces_and_embeddings(
             detector_backend="skip",
             align=align,
             normalization=normalization,
+            use_triton=use_triton,
         )
         # already extracted face given, safe to access its 1st item
         img_embedding = img_embedding_obj[0]["embedding"]

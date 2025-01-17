@@ -6,9 +6,11 @@ import numpy as np
 
 # project dependencies
 from deepface.commons import package_utils, weight_utils
-from deepface.modules import verification
-from deepface.models.FacialRecognition import FacialRecognition
 from deepface.commons.logger import Logger
+from deepface.models.FacialRecognition import FacialRecognition
+from deepface.models.triton import triton_client
+from deepface.modules import verification
+from tritonclient.grpc import InferInput, InferRequestedOutput
 
 logger = Logger()
 
@@ -16,25 +18,25 @@ logger = Logger()
 
 tf_version = package_utils.get_tf_major_version()
 if tf_version == 1:
-    from keras.models import Model, Sequential
     from keras.layers import (
-        Convolution2D,
-        ZeroPadding2D,
-        MaxPooling2D,
-        Flatten,
-        Dropout,
         Activation,
+        Convolution2D,
+        Dropout,
+        Flatten,
+        MaxPooling2D,
+        ZeroPadding2D,
     )
+    from keras.models import Model, Sequential
 else:
-    from tensorflow.keras.models import Model, Sequential
     from tensorflow.keras.layers import (
-        Convolution2D,
-        ZeroPadding2D,
-        MaxPooling2D,
-        Flatten,
-        Dropout,
         Activation,
+        Convolution2D,
+        Dropout,
+        Flatten,
+        MaxPooling2D,
+        ZeroPadding2D,
     )
+    from tensorflow.keras.models import Model, Sequential
 
 # ---------------------------------------
 
@@ -161,3 +163,37 @@ def load_model(
     vgg_face_descriptor = Model(inputs=model.input, outputs=base_model_output)
 
     return vgg_face_descriptor
+
+
+class VggFaceTritonClient(FacialRecognition):
+    """
+    VGG-Face model class
+    """
+
+    def __init__(self):
+        self.model = None
+
+        self.model_name = "VGG-Face"
+        self.input_shape = (224, 224)
+        self.output_shape = 4096
+
+    def forward(self, img: np.ndarray) -> List[float]:
+        with triton_client() as client:
+            # 입력 설정
+            inputs = []
+            inputs.append(InferInput("zero_padding2d_input", img.shape, "FP32"))
+            inputs[0].set_data_from_numpy(img)
+
+            # 출력 설정
+            outputs = []
+            outputs.append(InferRequestedOutput("flatten_1"))
+
+            results = client.infer(
+                model_name="vgg_face", 
+                inputs=inputs,
+                outputs=outputs
+            )
+
+            embedding = results.as_numpy("flatten_1").copy()
+            embedding = verification.l2_normalize(embedding)
+            return embedding.tolist()

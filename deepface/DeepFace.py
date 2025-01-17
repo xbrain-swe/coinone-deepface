@@ -1,8 +1,8 @@
 # common dependencies
+import logging
 import os
 import warnings
-import logging
-from typing import Any, Dict, IO, List, Union, Optional
+from typing import IO, Any, Dict, List, Optional, Union
 
 # this has to be set before importing tensorflow
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
@@ -13,21 +13,21 @@ os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from deepface import __version__
 
 # package dependencies
-from deepface.commons import package_utils, folder_utils
+from deepface.commons import folder_utils, package_utils
 from deepface.commons.logger import Logger
 from deepface.modules import (
-    modeling,
-    representation,
-    verification,
-    recognition,
     demography,
     detection,
-    streaming,
+    modeling,
     preprocessing,
+    recognition,
+    representation,
+    streaming,
+    verification,
 )
-from deepface import __version__
 
 logger = Logger()
 
@@ -80,6 +80,7 @@ def verify(
     silent: bool = False,
     threshold: Optional[float] = None,
     anti_spoofing: bool = False,
+    use_triton: bool = False,
 ) -> Dict[str, Any]:
     """
     Verify if an image pair represents the same person or different persons.
@@ -162,6 +163,7 @@ def verify(
         silent=silent,
         threshold=threshold,
         anti_spoofing=anti_spoofing,
+        use_triton=use_triton,
     )
 
 
@@ -174,6 +176,7 @@ def analyze(
     expand_percentage: int = 0,
     silent: bool = False,
     anti_spoofing: bool = False,
+    use_triton: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Analyze facial attributes such as age, gender, emotion, and race in the provided image.
@@ -262,6 +265,7 @@ def analyze(
         expand_percentage=expand_percentage,
         silent=silent,
         anti_spoofing=anti_spoofing,
+        use_triton=use_triton,
     )
 
 
@@ -382,6 +386,7 @@ def represent(
     normalization: str = "base",
     anti_spoofing: bool = False,
     max_faces: Optional[int] = None,
+    use_triton: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Represent facial images as multi-dimensional vector embeddings.
@@ -442,6 +447,7 @@ def represent(
         normalization=normalization,
         anti_spoofing=anti_spoofing,
         max_faces=max_faces,
+        use_triton=use_triton,
     )
 
 
